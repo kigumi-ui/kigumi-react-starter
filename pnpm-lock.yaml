@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@awesome.me/webawesome':
-        specifier: ^3.4.0
-        version: 3.4.0(@floating-ui/utils@0.2.11)(@types/react@19.2.14)
+        specifier: ^3.6.0
+        version: 3.6.0(@floating-ui/utils@0.2.11)(@types/react@19.2.14)
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -60,8 +60,8 @@ importers:
 
 packages:
 
-  '@awesome.me/webawesome@3.4.0':
-    resolution: {integrity: sha512-aebBd8s1P11Em8W9R1Kg7/nEcQ5uCwcWJCpG0Xl3LR7h2jOoQdpoOMZgvdqsWVuuSYB/eLLqFPYXOTdEemEj2w==}
+  '@awesome.me/webawesome@3.6.0':
+    resolution: {integrity: sha512-cUQWAq5KwQzy1fsMFUSJqGL6z/s9/VFOqnypOZOXZdpsfnD7gVFKnY6if9EbgzxtCXiHTOnEZ8N3mnwW2Z/Sww==}
     engines: {node: '>=14.17.0'}
 
   '@babel/code-frame@7.29.0':
@@ -500,8 +500,8 @@ packages:
   '@shoelace-style/animations@1.2.0':
     resolution: {integrity: sha512-avvo1xxkLbv2dgtabdewBbqcJfV0e0zCwFqkPMnHFGbJbBHorRFfMAHh1NG9ymmXn0jW95ibUVH03E1NYXD6Gw==}
 
-  '@shoelace-style/localize@3.2.1':
-    resolution: {integrity: sha512-r4C9C/5kSfMBIr0D9imvpRdCNXtUNgyYThc4YlS6K5Hchv1UyxNQ9mxwj+BTRH2i1Neits260sR3OjKMnplsFA==}
+  '@shoelace-style/localize@3.2.2':
+    resolution: {integrity: sha512-h3+2/cFWGaw3KQUwintkP4Cy3PtrVW//ysr9DM5nOfIXYekgrHwsELk/nyxc8hmjVP/Kcon7KCzvUtSwUBipfQ==}
 
   '@tybys/wasm-util@0.10.1':
     resolution: {integrity: sha512-9tTaPJLSiejZKx+Bmog4uSubteqTvFrVrURwkmHixBo0G4seD0zUxp98E1DzUBJxLQ3NPwXrGKDiVjwx/DpPsg==}
@@ -988,6 +988,11 @@ packages:
   lru-cache@5.1.1:
     resolution: {integrity: sha512-KpNARQA3Iwv+jTA0utUVVbrh+Jlrr1Fv0e56GGzAFOXN7dk/FviaDW8LHmK52DlcH4WP2n6gI8vN1aesBFgo9w==}
 
+  marked@11.2.0:
+    resolution: {integrity: sha512-HR0m3bvu0jAPYiIvLUUQtdg1g6D247//lvcekpHO1WMvbwDlwSkZAX9Lw4F4YHE1T0HaaNve0tuAWuV1UJ6vtw==}
+    engines: {node: '>= 18'}
+    hasBin: true
+
   minimatch@10.2.4:
     resolution: {integrity: sha512-oRjTw/97aTBN0RHbYCdtF1MQfvusSIBQM0IZEgzl6426+8jSC0nF1a/GmnVLpfB9yyr6g6FTqWqiZVbxrtaCIg==}
     engines: {node: 18 || 20 || >=22}
@@ -1221,15 +1226,16 @@ packages:
 
 snapshots:
 
-  '@awesome.me/webawesome@3.4.0(@floating-ui/utils@0.2.11)(@types/react@19.2.14)':
+  '@awesome.me/webawesome@3.6.0(@floating-ui/utils@0.2.11)(@types/react@19.2.14)':
     dependencies:
       '@ctrl/tinycolor': 4.1.0
       '@floating-ui/dom': 1.7.6
       '@lit/react': 1.0.8(@types/react@19.2.14)
       '@shoelace-style/animations': 1.2.0
-      '@shoelace-style/localize': 3.2.1
+      '@shoelace-style/localize': 3.2.2
       composed-offset-position: 0.0.6(@floating-ui/utils@0.2.11)
       lit: 3.3.2
+      marked: 11.2.0
       nanoid: 5.1.7
       qr-creator: 1.0.0
     transitivePeerDependencies:
@@ -1591,7 +1597,7 @@ snapshots:
 
   '@shoelace-style/animations@1.2.0': {}
 
-  '@shoelace-style/localize@3.2.1': {}
+  '@shoelace-style/localize@3.2.2': {}
 
   '@tybys/wasm-util@0.10.1':
     dependencies:
@@ -2079,6 +2085,8 @@ snapshots:
   lru-cache@5.1.1:
     dependencies:
       yallist: 3.1.1
+
+  marked@11.2.0: {}
 
   minimatch@10.2.4:
     dependencies:
