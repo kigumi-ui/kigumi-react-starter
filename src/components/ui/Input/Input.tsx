@@ -1,8 +1,35 @@
-import { forwardRef, useRef, useImperativeHandle, useEffect, type HTMLAttributes } from 'react';
+import {
+  forwardRef,
+  useRef,
+  useCallback,
+  useImperativeHandle,
+  useEffect,
+  type HTMLAttributes,
+} from 'react';
 import clsx from 'clsx';
-import '@awesome.me/webawesome/dist/components/input/input.js';
-import type WaElement from '@awesome.me/webawesome/dist/components/input/input.js';
+import type WaInput from '@awesome.me/webawesome/dist/components/input/input.js';
 import './Input.css';
+
+let loadPromise: Promise<unknown> | null = null;
+function ensureLoaded() {
+  return (loadPromise ??=
+    import('@awesome.me/webawesome/dist/components/input/input.js'));
+}
+
+/**
+ * Write a boolean as the keyword an enumerated attribute expects ("on"/"off",
+ * "true"/"false"), or remove the attribute when the prop is unset so the
+ * element keeps its own default.
+ */
+function setEnumeratedAttribute(
+  el: Pick<Element, 'setAttribute' | 'removeAttribute'>,
+  name: string,
+  value: boolean | undefined,
+  keywords: { true: string; false: string }
+): void {
+  if (value === undefined) el.removeAttribute(name);
+  else el.setAttribute(name, value ? keywords.true : keywords.false);
+}
 
 /**
  * Inputs collect data from the user
@@ -22,10 +49,26 @@ import './Input.css';
  * <Input ref={ref} />
  * ```
  */
-export interface InputProps extends Omit<HTMLAttributes<HTMLElement>, 'onInput' | 'onChange' | 'onBlur' | 'onFocus' | 'onClear' | 'onInvalid' | 'dir'> {
-
+export interface InputProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  | 'onInput'
+  | 'onChange'
+  | 'onBlur'
+  | 'onFocus'
+  | 'onClear'
+  | 'onInvalid'
+  | 'dir'
+> {
   /** Input type */
-  type?: 'text' | 'email' | 'password' | 'number' | 'date' | 'tel' | 'url' | 'search';
+  type?:
+    | 'text'
+    | 'email'
+    | 'password'
+    | 'number'
+    | 'date'
+    | 'tel'
+    | 'url'
+    | 'search';
 
   /** Accessible label for the input */
   label?: string;
@@ -43,7 +86,7 @@ export interface InputProps extends Omit<HTMLAttributes<HTMLElement>, 'onInput' 
   appearance?: 'filled' | 'filled-outlined' | 'outlined';
 
   /** Input size */
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'xs' | 's' | 'm' | 'l' | 'xl';
 
   /** Gives the input rounded edges */
   pill?: boolean;
@@ -79,15 +122,15 @@ export interface InputProps extends Omit<HTMLAttributes<HTMLElement>, 'onInput' 
   maxlength?: number;
 
   /** Minimum value for numeric and date types */
-  min?: number | string;
+  min?: string;
 
   /** Maximum value for numeric and date types */
-  max?: number | string;
+  max?: string;
 
   /** Step increment for numeric types */
-  step?: number | string;
+  step?: string;
 
-  /** Hides the browser's built-in spin buttons for number inputs */
+  /** Hides the browser's built-in spin buttons */
   'without-spin-buttons'?: boolean;
 
   /** Hint for autocomplete behavior */
@@ -96,22 +139,40 @@ export interface InputProps extends Omit<HTMLAttributes<HTMLElement>, 'onInput' 
   /** Controls automatic capitalization */
   autocapitalize?: 'off' | 'none' | 'on' | 'sentences' | 'words' | 'characters';
 
-  /** Enable autocorrect */
+  /** Turns autocorrect on or off; the browser decides when unset */
   autocorrect?: boolean;
 
   /** Automatically focuses the input on page load */
   autofocus?: boolean;
 
   /** Hint for virtual keyboard type */
-  inputmode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url';
+  inputmode?:
+    | 'none'
+    | 'text'
+    | 'decimal'
+    | 'numeric'
+    | 'tel'
+    | 'search'
+    | 'email'
+    | 'url';
 
   /** Hint for Enter key label on virtual keyboards */
-  enterkeyhint?: 'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
+  enterkeyhint?:
+    'enter' | 'done' | 'go' | 'next' | 'previous' | 'search' | 'send';
 
-  /** Emitted when the control receives input (native input event). */
-  onInput?: (event: Event) => void;
+  /** Native tooltip text, shown on hover */
+  title?: string;
 
-  /** Emitted when an alteration to the control's value is committed by the user (native change event). */
+  /** Turns spell checking on or off; on when unset */
+  spellcheck?: boolean;
+
+  /** Custom validation message; the control is invalid while it is set */
+  'custom-error'?: string;
+
+  /** Emitted when the control receives input. */
+  onInput?: (event: InputEvent) => void;
+
+  /** Emitted when an alteration to the control's value is committed by the user. */
   onChange?: (event: Event) => void;
 
   /** Emitted when the control loses focus. */
@@ -128,7 +189,6 @@ export interface InputProps extends Omit<HTMLAttributes<HTMLElement>, 'onInput' 
 }
 
 export interface InputRef {
-
   /** Sets focus on the input. */
   focus: (options: FocusOptions) => void;
 
@@ -139,10 +199,19 @@ export interface InputRef {
   select: () => void;
 
   /** Sets the start and end positions of the text selection (0-based). */
-  setSelectionRange: (selectionStart: number, selectionEnd: number, selectionDirection: 'forward' | 'backward' | 'none') => void;
+  setSelectionRange: (
+    selectionStart: number,
+    selectionEnd: number,
+    selectionDirection: 'forward' | 'backward' | 'none'
+  ) => void;
 
   /** Replaces a range of text with a new string. */
-  setRangeText: (replacement: string, start: number, end: number, selectMode: 'select' | 'start' | 'end' | 'preserve') => void;
+  setRangeText: (
+    replacement: string,
+    start: number,
+    end: number,
+    selectMode: 'select' | 'start' | 'end' | 'preserve'
+  ) => void;
 
   /** Displays the browser picker for an input element (only works if the browser supports it for the input type). */
   showPicker: () => void;
@@ -152,19 +221,55 @@ export interface InputRef {
 
   /** Decrements the value of a numeric input type by the value of the step attribute. */
   stepDown: () => void;
-  /** Reference to the underlying element */
-  element: WaElement | null;
+
+  /** Do not use this when creating a "Validator". This is intended for end users of components.
+We track manually defined custom errors so we don't clear them on accident in our validators. */
+  setCustomValidity: (message: string) => void;
+
+  /** Called when the browser is trying to restore element’s state to state in which case reason is "restore", or when
+the browser is trying to fulfill autofill on behalf of user in which case reason is "autocomplete". In the case of
+"restore", state is a string, File, or FormData object previously set as the second argument to setFormValue. */
+  formStateRestoreCallback: (
+    state: string | File | FormData | null,
+    reason: 'autocomplete' | 'restore'
+  ) => void;
+
+  /** Reset validity is a way of removing manual custom errors and native validation. */
+  resetValidity: () => void;
+  /** Reference to the underlying HTML element */
+  element: WaInput | null;
 }
 
 export const Input = forwardRef<InputRef, InputProps>(
-  ({ children, className, onInput, onChange, onBlur, onFocus, onClear, onInvalid, ...props }, ref) => {
-    const inputRef = useRef<WaElement | null>(null);
+  (
+    {
+      children,
+      className,
+      onInput,
+      onChange,
+      onBlur,
+      onFocus,
+      onClear,
+      onInvalid,
+      autocorrect,
+      spellcheck,
+      ...props
+    },
+    ref
+  ) => {
+    const inputRef = useRef<WaInput | null>(null);
+    const setInputRef = useCallback((el: WaInput | null) => {
+      inputRef.current = el;
+    }, []);
 
     useImperativeHandle(
       ref,
       () => ({
         focus: (options: FocusOptions) => {
-          if (inputRef.current && typeof inputRef.current.focus === 'function') {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.focus === 'function'
+          ) {
             inputRef.current.focus(options);
           }
         },
@@ -174,33 +279,91 @@ export const Input = forwardRef<InputRef, InputProps>(
           }
         },
         select: () => {
-          if (inputRef.current && typeof inputRef.current.select === 'function') {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.select === 'function'
+          ) {
             inputRef.current.select();
           }
         },
-        setSelectionRange: (selectionStart: number, selectionEnd: number, selectionDirection: 'forward' | 'backward' | 'none') => {
-          if (inputRef.current && typeof inputRef.current.setSelectionRange === 'function') {
-            inputRef.current.setSelectionRange(selectionStart, selectionEnd, selectionDirection);
+        setSelectionRange: (
+          selectionStart: number,
+          selectionEnd: number,
+          selectionDirection: 'forward' | 'backward' | 'none'
+        ) => {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.setSelectionRange === 'function'
+          ) {
+            inputRef.current.setSelectionRange(
+              selectionStart,
+              selectionEnd,
+              selectionDirection
+            );
           }
         },
-        setRangeText: (replacement: string, start: number, end: number, selectMode: 'select' | 'start' | 'end' | 'preserve') => {
-          if (inputRef.current && typeof inputRef.current.setRangeText === 'function') {
+        setRangeText: (
+          replacement: string,
+          start: number,
+          end: number,
+          selectMode: 'select' | 'start' | 'end' | 'preserve'
+        ) => {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.setRangeText === 'function'
+          ) {
             inputRef.current.setRangeText(replacement, start, end, selectMode);
           }
         },
         showPicker: () => {
-          if (inputRef.current && typeof inputRef.current.showPicker === 'function') {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.showPicker === 'function'
+          ) {
             inputRef.current.showPicker();
           }
         },
         stepUp: () => {
-          if (inputRef.current && typeof inputRef.current.stepUp === 'function') {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.stepUp === 'function'
+          ) {
             inputRef.current.stepUp();
           }
         },
         stepDown: () => {
-          if (inputRef.current && typeof inputRef.current.stepDown === 'function') {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.stepDown === 'function'
+          ) {
             inputRef.current.stepDown();
+          }
+        },
+        setCustomValidity: (message: string) => {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.setCustomValidity === 'function'
+          ) {
+            inputRef.current.setCustomValidity(message);
+          }
+        },
+        formStateRestoreCallback: (
+          state: string | File | FormData | null,
+          reason: 'autocomplete' | 'restore'
+        ) => {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.formStateRestoreCallback === 'function'
+          ) {
+            inputRef.current.formStateRestoreCallback(state, reason);
+          }
+        },
+        resetValidity: () => {
+          if (
+            inputRef.current &&
+            typeof inputRef.current.resetValidity === 'function'
+          ) {
+            inputRef.current.resetValidity();
           }
         },
         get element() {
@@ -211,15 +374,16 @@ export const Input = forwardRef<InputRef, InputProps>(
     );
 
     useEffect(() => {
+      ensureLoaded();
       const el = inputRef.current;
       if (!el) return;
 
       const handleInput = (e: Event) => {
-        if (onInput) onInput(e);
+        if (onInput) onInput(e as InputEvent);
       };
 
       const handleChange = (e: Event) => {
-        if (onChange) onChange(e);
+        if (onChange) onChange(e as Event);
       };
 
       const handleBlur = (e: Event) => {
@@ -230,11 +394,11 @@ export const Input = forwardRef<InputRef, InputProps>(
         if (onFocus) onFocus(e as FocusEvent);
       };
 
-      const handleClear = (e: Event) => {
+      const handleWaClear = (e: Event) => {
         if (onClear) onClear(e as CustomEvent);
       };
 
-      const handleInvalid = (e: Event) => {
+      const handleWaInvalid = (e: Event) => {
         if (onInvalid) onInvalid(e as CustomEvent);
       };
 
@@ -242,24 +406,40 @@ export const Input = forwardRef<InputRef, InputProps>(
       el.addEventListener('change', handleChange);
       el.addEventListener('blur', handleBlur);
       el.addEventListener('focus', handleFocus);
-      el.addEventListener('wa-clear', handleClear);
-      el.addEventListener('wa-invalid', handleInvalid);
+      el.addEventListener('wa-clear', handleWaClear);
+      el.addEventListener('wa-invalid', handleWaInvalid);
 
       return () => {
         el.removeEventListener('input', handleInput);
         el.removeEventListener('change', handleChange);
         el.removeEventListener('blur', handleBlur);
         el.removeEventListener('focus', handleFocus);
-        el.removeEventListener('wa-clear', handleClear);
-        el.removeEventListener('wa-invalid', handleInvalid);
+        el.removeEventListener('wa-clear', handleWaClear);
+        el.removeEventListener('wa-invalid', handleWaInvalid);
       };
     }, [onInput, onChange, onBlur, onFocus, onClear, onInvalid]);
 
+    useEffect(() => {
+      const el = inputRef.current;
+      if (!el) return;
+      setEnumeratedAttribute(el, 'autocorrect', autocorrect, {
+        true: 'on',
+        false: 'off',
+      });
+      setEnumeratedAttribute(el, 'spellcheck', spellcheck, {
+        true: 'true',
+        false: 'false',
+      });
+    }, [autocorrect, spellcheck]);
+
     return (
       <wa-input
-        ref={(el: WaElement | null) => { inputRef.current = el; }}
+        ref={setInputRef}
         class={clsx('Input', className)}
-        {...(props as Record<string, unknown>)}
+        {...({ suppressHydrationWarning: true, ...props } as Record<
+          string,
+          unknown
+        >)}
       >
         {children}
       </wa-input>

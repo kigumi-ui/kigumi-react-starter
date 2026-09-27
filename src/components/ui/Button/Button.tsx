@@ -1,8 +1,20 @@
-import { forwardRef, useRef, useImperativeHandle, useEffect, type HTMLAttributes } from 'react';
+import {
+  forwardRef,
+  useRef,
+  useCallback,
+  useImperativeHandle,
+  useEffect,
+  type HTMLAttributes,
+} from 'react';
 import clsx from 'clsx';
-import '@awesome.me/webawesome/dist/components/button/button.js';
-import type WaElement from '@awesome.me/webawesome/dist/components/button/button.js';
+import type WaButton from '@awesome.me/webawesome/dist/components/button/button.js';
 import './Button.css';
+
+let loadPromise: Promise<unknown> | null = null;
+function ensureLoaded() {
+  return (loadPromise ??=
+    import('@awesome.me/webawesome/dist/components/button/button.js'));
+}
 
 /**
  * Buttons represent actions that are available to the user
@@ -22,8 +34,10 @@ import './Button.css';
  * <Button ref={ref} />
  * ```
  */
-export interface ButtonProps extends Omit<HTMLAttributes<HTMLElement>, 'onBlur' | 'onFocus' | 'onInvalid' | 'dir'> {
-
+export interface ButtonProps extends Omit<
+  HTMLAttributes<HTMLElement>,
+  'onBlur' | 'onFocus' | 'onInvalid' | 'dir'
+> {
   /** Semantic variant of the button */
   variant?: 'neutral' | 'brand' | 'success' | 'warning' | 'danger';
 
@@ -31,7 +45,7 @@ export interface ButtonProps extends Omit<HTMLAttributes<HTMLElement>, 'onBlur' 
   appearance?: 'accent' | 'filled-outlined' | 'filled' | 'outlined' | 'plain';
 
   /** Button size */
-  size?: 'small' | 'medium' | 'large';
+  size?: 'small' | 'medium' | 'large' | 'xs' | 's' | 'm' | 'l' | 'xl';
 
   /** Gives the button rounded edges */
   pill?: boolean;
@@ -81,6 +95,12 @@ export interface ButtonProps extends Omit<HTMLAttributes<HTMLElement>, 'onBlur' 
   /** Override the form's target attribute */
   formtarget?: string;
 
+  /** Native tooltip text, shown on hover */
+  title?: string;
+
+  /** Custom validation message; the control is invalid while it is set */
+  'custom-error'?: string;
+
   /** Emitted when the button loses focus. */
   onBlur?: (event: FocusEvent) => void;
 
@@ -92,7 +112,6 @@ export interface ButtonProps extends Omit<HTMLAttributes<HTMLElement>, 'onBlur' 
 }
 
 export interface ButtonRef {
-
   /** Simulates a click on the button. */
   click: () => void;
 
@@ -101,30 +120,84 @@ export interface ButtonRef {
 
   /** Removes focus from the button. */
   blur: () => void;
-  /** Reference to the underlying element */
-  element: WaElement | null;
+
+  /** Do not use this when creating a "Validator". This is intended for end users of components.
+We track manually defined custom errors so we don't clear them on accident in our validators. */
+  setCustomValidity: (message: string) => void;
+
+  /** Called when the browser is trying to restore element’s state to state in which case reason is "restore", or when
+the browser is trying to fulfill autofill on behalf of user in which case reason is "autocomplete". In the case of
+"restore", state is a string, File, or FormData object previously set as the second argument to setFormValue. */
+  formStateRestoreCallback: (
+    state: string | File | FormData | null,
+    reason: 'autocomplete' | 'restore'
+  ) => void;
+
+  /** Reset validity is a way of removing manual custom errors and native validation. */
+  resetValidity: () => void;
+  /** Reference to the underlying HTML element */
+  element: WaButton | null;
 }
 
 export const Button = forwardRef<ButtonRef, ButtonProps>(
   ({ children, className, onBlur, onFocus, onInvalid, ...props }, ref) => {
-    const buttonRef = useRef<WaElement | null>(null);
+    const buttonRef = useRef<WaButton | null>(null);
+    const setButtonRef = useCallback((el: WaButton | null) => {
+      buttonRef.current = el;
+    }, []);
 
     useImperativeHandle(
       ref,
       () => ({
         click: () => {
-          if (buttonRef.current && typeof buttonRef.current.click === 'function') {
+          if (
+            buttonRef.current &&
+            typeof buttonRef.current.click === 'function'
+          ) {
             buttonRef.current.click();
           }
         },
         focus: (options: FocusOptions) => {
-          if (buttonRef.current && typeof buttonRef.current.focus === 'function') {
+          if (
+            buttonRef.current &&
+            typeof buttonRef.current.focus === 'function'
+          ) {
             buttonRef.current.focus(options);
           }
         },
         blur: () => {
-          if (buttonRef.current && typeof buttonRef.current.blur === 'function') {
+          if (
+            buttonRef.current &&
+            typeof buttonRef.current.blur === 'function'
+          ) {
             buttonRef.current.blur();
+          }
+        },
+        setCustomValidity: (message: string) => {
+          if (
+            buttonRef.current &&
+            typeof buttonRef.current.setCustomValidity === 'function'
+          ) {
+            buttonRef.current.setCustomValidity(message);
+          }
+        },
+        formStateRestoreCallback: (
+          state: string | File | FormData | null,
+          reason: 'autocomplete' | 'restore'
+        ) => {
+          if (
+            buttonRef.current &&
+            typeof buttonRef.current.formStateRestoreCallback === 'function'
+          ) {
+            buttonRef.current.formStateRestoreCallback(state, reason);
+          }
+        },
+        resetValidity: () => {
+          if (
+            buttonRef.current &&
+            typeof buttonRef.current.resetValidity === 'function'
+          ) {
+            buttonRef.current.resetValidity();
           }
         },
         get element() {
@@ -135,6 +208,7 @@ export const Button = forwardRef<ButtonRef, ButtonProps>(
     );
 
     useEffect(() => {
+      ensureLoaded();
       const el = buttonRef.current;
       if (!el) return;
 
@@ -146,26 +220,29 @@ export const Button = forwardRef<ButtonRef, ButtonProps>(
         if (onFocus) onFocus(e as FocusEvent);
       };
 
-      const handleInvalid = (e: Event) => {
+      const handleWaInvalid = (e: Event) => {
         if (onInvalid) onInvalid(e as CustomEvent);
       };
 
       el.addEventListener('blur', handleBlur);
       el.addEventListener('focus', handleFocus);
-      el.addEventListener('wa-invalid', handleInvalid);
+      el.addEventListener('wa-invalid', handleWaInvalid);
 
       return () => {
         el.removeEventListener('blur', handleBlur);
         el.removeEventListener('focus', handleFocus);
-        el.removeEventListener('wa-invalid', handleInvalid);
+        el.removeEventListener('wa-invalid', handleWaInvalid);
       };
     }, [onBlur, onFocus, onInvalid]);
 
     return (
       <wa-button
-        ref={(el: WaElement | null) => { buttonRef.current = el; }}
+        ref={setButtonRef}
         class={clsx('Button', className)}
-        {...(props as Record<string, unknown>)}
+        {...({ suppressHydrationWarning: true, ...props } as Record<
+          string,
+          unknown
+        >)}
       >
         {children}
       </wa-button>
