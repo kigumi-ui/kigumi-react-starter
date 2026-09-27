@@ -1,8 +1,20 @@
-import { forwardRef, useRef, useImperativeHandle, type HTMLAttributes } from 'react';
+import {
+  forwardRef,
+  useRef,
+  useCallback,
+  useImperativeHandle,
+  useEffect,
+  type HTMLAttributes,
+} from 'react';
 import clsx from 'clsx';
-import '@awesome.me/webawesome/dist/components/card/card.js';
-import type WaElement from '@awesome.me/webawesome/dist/components/card/card.js';
+import type WaCard from '@awesome.me/webawesome/dist/components/card/card.js';
 import './Card.css';
+
+let loadPromise: Promise<unknown> | null = null;
+function ensureLoaded() {
+  return (loadPromise ??=
+    import('@awesome.me/webawesome/dist/components/card/card.js'));
+}
 
 /**
  * Cards can be used to group related subjects in a container
@@ -18,7 +30,6 @@ import './Card.css';
  * ```
  */
 export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'dir'> {
-
   /** Visual appearance style */
   appearance?: 'outlined' | 'filled-outlined' | 'plain' | 'filled' | 'accent';
 
@@ -36,13 +47,16 @@ export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'dir'> {
 }
 
 export interface CardRef {
-  /** Reference to the underlying element */
-  element: WaElement | null;
+  /** Reference to the underlying HTML element */
+  element: WaCard | null;
 }
 
 export const Card = forwardRef<CardRef, CardProps>(
   ({ children, className, ...props }, ref) => {
-    const cardRef = useRef<WaElement | null>(null);
+    const cardRef = useRef<WaCard | null>(null);
+    const setCardRef = useCallback((el: WaCard | null) => {
+      cardRef.current = el;
+    }, []);
 
     useImperativeHandle(
       ref,
@@ -54,11 +68,18 @@ export const Card = forwardRef<CardRef, CardProps>(
       []
     );
 
+    useEffect(() => {
+      ensureLoaded();
+    }, []);
+
     return (
       <wa-card
-        ref={(el: WaElement | null) => { cardRef.current = el; }}
+        ref={setCardRef}
         class={clsx('Card', className)}
-        {...(props as Record<string, unknown>)}
+        {...({ suppressHydrationWarning: true, ...props } as Record<
+          string,
+          unknown
+        >)}
       >
         {children}
       </wa-card>
