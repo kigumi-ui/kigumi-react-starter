@@ -30,3 +30,6 @@ dist-ssr
 
 *storybook.log
 storybook-static
+
+# Local agent worktrees
+.claude/worktrees/
